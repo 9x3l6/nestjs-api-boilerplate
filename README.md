@@ -40,3 +40,72 @@ $ rm -rf .git
 $ npm install
 $ npm run start
 ```
+
+Next you need to create a database container for the webapi to use for storing all the data your app will have.
+
+Firstly we need a file to securely hold our database credentials and other things like secret keys. Make sure to add this file to `.gitignore` so that it doesn't get added to the files uploaded to git and so no one can see your secret that are stored in this file. When the application is deployed we will be able to provide these details so that things will work.
+
+```ini
+POSTGRES_PASSWORD=password
+```
+
+Create a `docker-compose.yml` file inside the `webapi/` directory having the contents below:
+
+- Notice: we are loading the `.env` file having our secrets with the `env_file:` docker-compose configuration option.
+- Notice: we are using docker-compose to create a network for this project having the project name. If you have multiple project using the same network name or volume name and try to start the apps it may not work as expected.
+
+```yaml
+version: "3"
+
+services:
+  db:
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+  redis:
+    image: 'redis:alpine'
+    ports:
+      - '${FORWARD_REDIS_PORT:-6379}:6379'
+    volumes:
+      - 'nestjs-api-boilerplate-redis:/data'
+    networks:
+      - nestjs-api-boilerplate
+    healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        retries: 3
+        timeout: 5s
+networks:
+  nestjs-api-boilerplate:
+    driver: bridge
+volumes:
+  nestjs-api-boilerplate-pgsql:
+    driver: local
+  nestjs-api-boilerplate-redis:
+      driver: local
+```
+
+To start the database service and the redis service run this command below:
+
+```shell
+docker-compose up -d
+```
+
+To start only the database service you can just add the name of the service to the command above.
+
+```shell
+docker-compose up -d <name>
+docker-compose up -d db
+```
+
+When you're done you can run `docker-compose stop` or ` docker-compose kill` to stop all of the services. Or just like with the `up` command you can specify the service name to stop.
+
+Later you will most likely want to add more services that your application will be using in order to operate effeciently. For now having a databse server and a redis cache server is a good start and you can do a lot just with this setup.
+
+Next we will be adding `Authentication and Authorization` functionality to the webapi so that users can create an account with username, email and password and then login and logout.
+
+You'll want to install [Insomnia](https://insomnia.rest/) to make requests to the api until we build a frontend to handle that for us. It's better than running curl commands from the terminal, more feature rich. Insomnia can export the requests you make, to be ran as curl commands from the terminal instead of the app interface.
+
+Are you looking for a Technical Writer? Are you looking for a Full-Stack Web Developer? Are you looking for a Tech Lead to support a team of junior developers? Maybe you found this page useful and want to [buy me a coffee](https://buymeacoffee.com/alexgoretoy). As of Sept. 2022 I'm looking for a new job, let's talk. email alex@goretoy.com to connect with me.
